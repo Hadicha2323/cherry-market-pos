@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Cherry Market · POS</title>
 <meta name="theme-color" content="#e11d48">
+<link rel="manifest" href="manifest.json">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <script src="https://cdn.jsdelivr.net/npm/qz-tray@2.2.4/qz-tray.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
@@ -299,6 +300,7 @@ body{background:var(--bg);min-height:100dvh;padding:12px;display:flex;align-item
       <div class="logo-text">Cherry Market<small>Premium POS System</small></div>
     </div>
     <div class="topbar-right">
+      <button class="btn btn-secondary btn-sm" id="pwaInstallBtn" style="display:none" onclick="installPWA()"><i class="fas fa-download"></i> Yuklab olish</button>
       <span class="chip scale" id="scaleChip"><i class="fas fa-network-wired"></i> <span id="scaleStatus">Tarozi ulandi</span></span>
       <span class="chip" id="qzChip" style="display:none;background:rgba(16,185,129,0.1);border-color:rgba(16,185,129,0.2);color:var(--emerald)"><i class="fas fa-print"></i> QZ Tray</span>
       <span class="chip" id="shiftChip"><span class="dot"></span> <span id="shiftChipText">Smena yopiq</span></span>
@@ -665,26 +667,29 @@ body{background:var(--bg);min-height:100dvh;padding:12px;display:flex;align-item
       <div class="form-group"><label class="form-label">Yaroqlilik muddati</label><input type="date" class="form-input" id="pExpiry"></div>
       <div class="form-group"><label class="form-label">Shtrix-kodlar</label>
         <div id="barcodeList"></div>
-        <button type="button" class="btn btn-secondary btn-sm btn-block" style="margin-top:6px" onclick="addBarcodeField()"><i class="fas fa-plus"></i> Qo'shish</button>
+        <div style="display:flex;gap:8px;margin-top:6px">
+          <button type="button" class="btn btn-secondary btn-sm" style="flex:1" onclick="addBarcodeField()"><i class="fas fa-plus"></i> Qo'shish</button>
+          <button type="button" class="btn btn-primary btn-sm" style="flex:1" onclick="openProductScanner()"><i class="fas fa-camera"></i> Skaner</button>
+        </div>
       </div>
       <div class="form-group"><label class="form-label">Kategoriya</label><select class="form-select" id="pCategory"></select></div>
       
       <div class="form-row" style="align-items: end;">
         <div class="form-group" style="margin-bottom:0">
           <label class="form-label">Kelish narxi *</label>
-          <input type="number" class="form-input" id="pPurchase" required oninput="calcFromPurchase()" placeholder="0">
+          <input type="number" step="0.01" class="form-input" id="pPurchase" required oninput="calcFromPurchase()" placeholder="0">
         </div>
         <div class="form-group" style="margin-bottom:0">
           <label class="form-label">Ustama (Foiz %)</label>
-          <input type="number" class="form-input" id="pPercent" oninput="calcFromPercent()" placeholder="0">
+          <input type="number" step="0.01" class="form-input" id="pPercent" oninput="calcFromPercent()" placeholder="0">
         </div>
       </div>
       <div class="form-group" style="margin-top:12px;">
         <label class="form-label">Sotish narxi *</label>
-        <input type="number" class="form-input" id="pSell" required oninput="calcFromSell()" placeholder="0">
+        <input type="number" step="0.01" class="form-input" id="pSell" required oninput="calcFromSell()" placeholder="0">
       </div>
 
-      <div class="form-group"><label class="form-label">Miqdor *</label><input type="number" class="form-input" id="pQty" step="0.001" required></div>
+      <div class="form-group"><label class="form-label">Miqdor *</label><input type="number" step="0.001" class="form-input" id="pQty" required></div>
       
       <input type="hidden" id="editId">
       <div class="modal-btns">
@@ -756,7 +761,6 @@ body{background:var(--bg);min-height:100dvh;padding:12px;display:flex;align-item
 const SUPABASE_URL = 'https://rmzdmcgxtpeukhzkykcx.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_gu0vC6Qdiae3NgfrlEeC6w_9Z5SNwaz';
 
-// DIQQAT: 'Authorization: undefined' qo'shildi. Bu yangi publishable kalitlarda 401 xatosini oldini oladi!
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   global: {
     headers: {
@@ -1247,10 +1251,10 @@ function renderQabulTable() {
         <input type="text" class="form-input" style="min-height:32px;padding:4px 8px;font-size:12px" value="${esc(item.name)}" oninput="updateQabulItem(${idx}, 'name', this.value)" onfocus="showSuggestions(${idx}, this.value)" placeholder="Tovar nomi">
         <div class="suggestion-box" id="sugg_${idx}"></div>
       </td>
-      <td><input type="number" class="form-input" style="min-height:32px;padding:4px 8px;font-size:12px;width:70px" value="${item.qty}" oninput="updateQabulItem(${idx}, 'qty', this.value)"></td>
-      <td><input type="number" class="form-input" style="min-height:32px;padding:4px 8px;font-size:12px;width:90px" value="${item.purchase}" oninput="updateQabulItem(${idx}, 'purchase', this.value)" placeholder="0"></td>
-      <td><input type="number" class="form-input" style="min-height:32px;padding:4px 8px;font-size:12px;width:60px" value="${item.percent}" oninput="updateQabulItem(${idx}, 'percent', this.value)" placeholder="%"></td>
-      <td><input type="number" class="form-input" style="min-height:32px;padding:4px 8px;font-size:12px;width:90px" value="${item.sell}" oninput="updateQabulItem(${idx}, 'sell', this.value)" placeholder="0"></td>
+      <td><input type="number" step="0.01" class="form-input" style="min-height:32px;padding:4px 8px;font-size:12px;width:70px" value="${item.qty}" oninput="updateQabulItem(${idx}, 'qty', this.value)"></td>
+      <td><input type="number" step="0.01" class="form-input" style="min-height:32px;padding:4px 8px;font-size:12px;width:90px" value="${item.purchase}" oninput="updateQabulItem(${idx}, 'purchase', this.value)" placeholder="0"></td>
+      <td><input type="number" step="0.01" class="form-input" style="min-height:32px;padding:4px 8px;font-size:12px;width:60px" value="${item.percent}" oninput="updateQabulItem(${idx}, 'percent', this.value)" placeholder="%"></td>
+      <td><input type="number" step="0.01" class="form-input" style="min-height:32px;padding:4px 8px;font-size:12px;width:90px" value="${item.sell}" oninput="updateQabulItem(${idx}, 'sell', this.value)" placeholder="0"></td>
       <td style="font-weight:700;color:var(--amber)" id="qabulRowPurchase_${idx}">${formatNumber(item.purchase * item.qty)}</td>
       <td style="font-weight:700;color:var(--sky)" id="qabulRowSell_${idx}">${formatNumber(item.sell * item.qty)}</td>
       <td><button class="btn btn-danger btn-sm" style="padding:4px 8px;min-height:30px" onclick="removeQabulRow(${idx})"><i class="fas fa-times"></i></button></td>
@@ -1306,9 +1310,18 @@ document.addEventListener('click', function(e) {
   }
 });
 
-function calcQabulPercent(idx) { const item = qabulItems[idx]; if (item.purchase > 0 && item.sell > 0) item.percent = Math.round(((item.sell - item.purchase) / item.purchase) * 1000) / 10; }
-function calcQabulSell(idx) { const item = qabulItems[idx]; if (item.purchase > 0) item.sell = Math.round(item.purchase + (item.purchase * item.percent / 100)); }
-function calcQabulPercentFromSell(idx) { const item = qabulItems[idx]; if (item.purchase > 0 && item.sell > 0) item.percent = Math.round(((item.sell - item.purchase) / item.purchase) * 1000) / 10; }
+function calcQabulPercent(idx) { 
+  const item = qabulItems[idx]; 
+  if (item.purchase > 0 && item.sell > 0) item.percent = Math.round(((item.sell - item.purchase) / item.purchase) * 1000) / 10; 
+}
+function calcQabulSell(idx) { 
+  const item = qabulItems[idx]; 
+  if (item.purchase > 0) item.sell = Math.round((item.purchase + (item.purchase * item.percent / 100)) * 100) / 100; 
+}
+function calcQabulPercentFromSell(idx) { 
+  const item = qabulItems[idx]; 
+  if (item.purchase > 0 && item.sell > 0) item.percent = Math.round(((item.sell - item.purchase) / item.purchase) * 1000) / 10; 
+}
 function removeQabulRow(idx) { qabulItems.splice(idx, 1); renderQabulTable(); }
 
 function updateQabulTotals() {
@@ -1404,7 +1417,7 @@ function importCatalog(event) {
 function calcFromPercent() {
   const purchase = parseFloat(document.getElementById('pPurchase').value) || 0;
   const percent = parseFloat(document.getElementById('pPercent').value) || 0;
-  if (purchase > 0) document.getElementById('pSell').value = Math.round(purchase + (purchase * percent / 100));
+  if (purchase > 0) document.getElementById('pSell').value = Math.round((purchase + (purchase * percent / 100)) * 100) / 100;
   else document.getElementById('pSell').value = 0;
 }
 function calcFromSell() {
@@ -2369,6 +2382,73 @@ function printProductLabel(id) {
 }
 
 // ============================================================
+// PWA VA YANGILANISHLAR
+// ============================================================
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').then(reg => {
+    reg.addEventListener('updatefound', () => {
+      const newWorker = reg.installing;
+      newWorker.addEventListener('statechange', () => {
+        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+          if (confirm('Dasturning yangi versiyasi tayyor. Yangilaysizmi?')) {
+            window.location.reload();
+          }
+        }
+      });
+    });
+  }).catch(err => console.log('SW xatosi:', err));
+}
+
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  const btn = document.getElementById('pwaInstallBtn');
+  if (btn) btn.style.display = 'inline-flex';
+});
+
+function installPWA() {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then((choiceResult) => {
+      if (choiceResult.outcome === 'accepted') console.log('Foydalanuvchi dasturni o\'rnatdi');
+      deferredPrompt = null;
+      const btn = document.getElementById('pwaInstallBtn');
+      if (btn) btn.style.display = 'none';
+    });
+  } else {
+    showToast('Brauzeringiz bu funksiyani qo\'llab-quvvatlamaydi yoki dastur allaqachon o\'rnatilgan.', 'info');
+  }
+}
+
+function openProductScanner() {
+  openModal('scannerModal');
+  if (typeof Html5Qrcode === 'undefined') { showToast('Skaner yuklanmagan', 'error'); return; }
+  if (barcodeScanner) { barcodeScanner.stop().catch(()=>{}); }
+  
+  barcodeScanner = new Html5Qrcode('barcodeReader');
+  barcodeScanner.start(
+    { facingMode: 'environment' },
+    { fps: 10, qrbox: 250 },
+    (decodedText) => {
+      const barcodeList = document.getElementById('barcodeList');
+      if (barcodeList.children.length === 0) addBarcodeField();
+      
+      const inputs = barcodeList.querySelectorAll('input[type="text"]');
+      if (inputs.length > 0) {
+        inputs[inputs.length - 1].value = decodedText;
+      } else {
+        addBarcodeField(decodedText);
+      }
+      
+      closeScanner();
+      showToast('Shtrix-kod skanerlandi: ' + decodedText, 'success');
+    },
+    () => {}
+  ).catch(err => showToast('Kamera xatosi: ' + err, 'error'));
+}
+
+// ============================================================
 // INIT
 // ============================================================
 window.addEventListener('DOMContentLoaded', async () => {
@@ -2380,6 +2460,11 @@ window.addEventListener('DOMContentLoaded', async () => {
   renderProductsTable();
   renderSuppliers();
   updateCart();
+  
+  if (window.innerWidth <= 820) {
+    switchPage('mahsulotlar');
+  }
+  
   const dateInput = document.getElementById('reportDate');
   if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
   console.log('✅ POS tayyor');
